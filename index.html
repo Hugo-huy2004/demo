@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saving Energy App Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #f0f0f0, #d9e2ec);
+      margin: 0;
+      overflow: hidden;
+    }
+    .iphone-frame {
+      width: 430px;
+      height: 932px;
+      background-image: url('https://i.imgur.com/iphone15-frame.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      position: relative;
+      padding: 40px 25px;
+      box-sizing: border-box;
+    }
+    .screen {
+      width: 100%;
+      height: 100%;
+      background: white;
+      border-radius: 40px;
+      overflow-y: auto;
+      position: relative;
+      background: linear-gradient(180deg, #ffffff, #f1f5f9);
+    }
+    .screen::-webkit-scrollbar {
+      display: none;
+    }
+    .otp-inputs {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .otp-inputs input {
+      width: 48px;
+      height: 48px;
+      text-align: center;
+      font-size: 1.5rem;
+      border: 2px solid #1E90FF;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .otp-inputs input:focus {
+      outline: none;
+      box-shadow: 0 0 8px rgba(30, 144, 255, 0.5);
+    }
+    .chart-container {
+      width: 100%;
+      height: 220px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .kwh-bar {
+      transition: width 0.5s ease;
+    }
+    .payment-option {
+      border: 2px solid #1E90FF;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      background: #ffffff;
+      transition: all 0.3s ease;
+    }
+    .payment-option:hover {
+      background: linear-gradient(90deg, #FFD700, #ffffff);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, #1E90FF, #4169E1);
+      color: white;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(90deg, #4169E1, #1E90FF);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+    }
+    .btn-secondary {
+      color: #FFD700;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .btn-secondary:hover {
+      color: #FFA500;
+      transform: translateY(-2px);
+    }
+    .icon-btn {
+      transition: all 0.3s ease;
+    }
+    .icon-btn:hover {
+      transform: scale(1.1);
+      color: #FFD700;
+    }
+    .header {
+      background: linear-gradient(90deg, #1E90FF, #4169E1);
+      color: white;
+      padding: 16px;
+      border-radius: 0 0 24px 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="iphone-frame">
+    <div class="screen">
+      <!-- Login Screen -->
+      <div id="login-screen" class="p-6 flex flex-col h-full justify-between">
+        <div>
+          <div class="header text-center mb-6">
+            <h1 class="text-3xl font-bold">Saving Energy</h1>
+            <p class="text-sm">Quản lý tiêu thụ điện thông minh</p>
+          </div>
+          <div class="card">
+            <label class="block text-sm font-medium text-gray-700">Mã Khách Hàng</label>
+            <input id="customer-id" type="text" class="w-full p-3 border border-blue-300 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500" placeholder="Nhập mã khách hàng">
+          </div>
+          <div class="card">
+            <label class="block text-sm font-medium text-gray-700">Số Điện Thoại</label>
+            <input id="phone-number" type="text" class="w-full p-3 border border-blue-300 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500" placeholder="Nhập số điện thoại">
+          </div>
+          <button onclick="submitLogin()" class="w-full btn-primary p-3 rounded-lg mt-4">Gửi Mã OTP</button>
+        </div>
+        <button onclick="exitApp()" class="btn-secondary text-center">Thoát</button>
+      </div>
+
+      <!-- OTP Screen -->
+      <div id="otp-screen" class="p-6 flex flex-col h-full justify-between hidden">
+        <div>
+          <div class="header text-center mb-6">
+            <h1 class="text-3xl font-bold">Nhập Mã OTP</h1>
+            <p class="text-sm">Vui lòng nhập mã OTP đã gửi đến số điện thoại</p>
+          </div>
+          <div class="card">
+            <div class="otp-inputs mb-4">
+              <input type="text" maxlength="1" oninput="moveToNext(this, 1)">
+              <input type="text" maxlength="1" oninput="moveToNext(this, 2)">
+              <input type="text" maxlength="1" oninput="moveToNext(this, 3)">
+              <input type="text" maxlength="1" oninput="moveToNext(this, 4)">
+              <input type="text" maxlength="1" oninput="moveToNext(this, 5)">
+              <input type="text" maxlength="1" oninput="moveToNext(this, 6)">
+            </div>
+            <button onclick="verifyOTP()" class="w-full btn-primary p-3 rounded-lg">Xác Minh</button>
+          </div>
+        </div>
+        <button onclick="backToLogin()" class="btn-secondary text-center">Thoát</button>
+      </div>
+
+      <!-- Home Screen -->
+      <div id="home-screen" class="p-6 flex flex-col h-full hidden">
+        <div class="header mb-4">
+          <h1 class="text-2xl font-bold">Trang Chủ</h1>
+        </div>
+        <div class="card">
+          <h2 class="text-lg font-semibold text-blue-600 mb-2">Thông Tin Khách Hàng</h2>
+          <p><strong>Họ và Tên:</strong> Nguyễn Văn A</p>
+          <p><strong>Số Điện Thoại:</strong> 0123456789</p>
+          <p><strong>Mã Khách Hàng:</strong> demo123</p>
+          <p><strong>Địa Chỉ:</strong> 123 Đường Láng, Hà Nội</p>
+        </div>
+        <div class="card">
+          <h2 class="text-lg font-semibold text-blue-600 mb-2">Tiêu Thụ Điện 5 Tháng Gần Nhất</h2>
+          <div class="chart-container">
+            <canvas id="energyChart"></canvas>
+          </div>
+        </div>
+        <div class="flex justify-around mt-auto">
+          <button onclick="showAccount()" class="icon-btn">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          </button>
+          <button onclick="showManagement()" class="icon-btn">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+          </button>
+          <button onclick="showBill()" class="icon-btn">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+          </button>
+        </div>
+        <button onclick="exitApp()" class="btn-secondary text-center mt-4">Thoát</button>
+      </div>
+
+      <!-- Account Screen -->
+      <div id="account-screen" class="p-6 flex flex-col h-full hidden">
+        <div class="header mb-4">
+          <h1 class="text-2xl font-bold">Thông Tin Tài Khoản</h1>
+        </div>
+        <div class="card">
+          <h2 class="text-lg font-semibold text-blue-600 mb-2">Chi Tiết Khách Hàng</h2>
+          <p><strong>Họ và Tên:</strong> Nguyễn Văn A</p>
+          <p><strong>Số Điện Thoại:</strong> 0123456789</p>
+          <p><strong>Mã Khách Hàng:</strong> demo123</p>
+          <p><strong>Địa Chỉ:</strong> 123 Đường Láng, Hà Nội</p>
+          <p><strong>Ngày Sinh:</strong> 01/01/1990</p>
+          <p><strong>Mã Số Thuế:</strong> 1234567890</p>
+        </div>
+        <button onclick="backToHome()" class="btn-secondary text-center mt-auto">Thoát</button>
+      </div>
+
+      <!-- Management Screen -->
+      <div id="management-screen" class="p-6 flex flex-col h-full hidden">
+        <div class="header mb-4">
+          <h1 class="text-2xl font-bold">Quản Lý Tiêu Thụ</h1>
+        </div>
+        <div class="card">
+          <label class="block text-sm font-medium text-gray-700">Mức Điện Mong Muốn (kWh)</label>
+          <input id="desired-kwh" type="number" class="w-full p-3 border border-blue-300 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500" placeholder="Nhập mức kWh">
+          <button onclick="setDesiredKwh()" class="w-full btn-primary p-3 rounded-lg mt-2">Xác Nhận</button>
+        </div>
+        <div class="card">
+          <h2 class="text-lg font-semibold text-blue-600 mb-2">Biểu Đồ Tiêu Thụ</h2>
+          <div class="chart-container">
+            <canvas id="managementChart"></canvas>
+          </div>
+        </div>
+        <div id="usage-notifications" class="card">
+          <!-- Notifications will be populated by JS -->
+        </div>
+        <button onclick="backToHome()" class="btn-secondary text-center mt-auto">Thoát</button>
+      </div>
+
+      <!-- Bill Screen -->
+      <div id="bill-screen" class="p-6 flex flex-col h-full hidden">
+        <div class="header mb-4">
+          <h1 class="text-2xl font-bold">Hoá Đơn</h1>
+        </div>
+        <div class="card" id="bill-details">
+          <h2 class="text-lg font-semibold text-blue-600 mb-2">Thông Tin Hoá Đơn</h2>
+          <p><strong>Thông Báo:</strong> Đã đến hạn thanh toán ngày 15/10/2025</p>
+          <p><strong>Mức Điện Dùng:</strong> 250 kWh (Tháng 9 - Tháng 10)</p>
+          <p><strong>Số Tiền Cần Thanh Toán:</strong> 500,000 VND</p>
+        </div>
+        <button onclick="showPayment()" class="w-full btn-primary p-3 rounded-lg mb-4">Xem Chi Tiết</button>
+        <button onclick="backToHome()" class="btn-secondary text-center mt-auto">Thoát</button>
+      </div>
+
+      <!-- Payment Screen -->
+      <div id="payment-screen" class="p-6 flex flex-col h-full hidden">
+        <div class="header mb-4">
+          <h1 class="text-2xl font-bold">Thanh Toán Hoá Đơn</h1>
+        </div>
+        <div class="card">
+          <h2 class="text-lg font-semibold text-blue-600 mb-2">Thông Tin Thanh Toán</h2>
+          <p><strong>Họ và Tên:</strong> Nguyễn Văn A</p>
+          <p><strong>Mã Khách Hàng:</strong> demo123</p>
+          <p><strong>Địa Chỉ:</strong> 123 Đường Láng, Hà Nội</p>
+          <p><strong>Mức Điện Dùng:</strong> 250 kWh</p>
+          <p><strong>Số Tiền Cần Thanh Toán:</strong> 500,000 VND</p>
+        </div>
+        <div class="card">
+          <h2 class="text-lg font-semibold text-blue-600 mb-2">Hình Thức Thanh Toán</h2>
+          <div class="flex flex-col gap-3">
+            <div class="payment-option" onclick="selectPayment('Momo')">Momo</div>
+            <div class="payment-option" onclick="selectPayment('VNPay')">VNPay</div>
+            <div class="payment-option" onclick="selectPayment('ZaloPay')">ZaloPay</div>
+            <div class="payment-option" onclick="selectPayment('Visa')">Visa</div>
+            <div class="payment-option" onclick="selectPayment('ATM')">ATM</div>
+          </div>
+        </div>
+        <button onclick="processPayment()" class="w-full btn-primary p-3 rounded-lg">Thanh Toán</button>
+        <button onclick="backToBill()" class="btn-secondary text-center mt-4">Thoát</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const energyData = [200, 250, 180, 300, 220]; // kWh for last 5 months
+    let desiredKwh = 200; // Default desired kWh
+    let chartInstance = null;
+    let managementChartInstance = null;
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen > div').forEach(div => div.classList.add('hidden'));
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function submitLogin() {
+      const customerId = document.getElementById('customer-id').value;
+      const phoneNumber = document.getElementById('phone-number').value;
+      if (customerId === 'demo123' && phoneNumber === '0123456789') {
+        showScreen('otp-screen');
+      } else {
+        alert('Mã khách hàng hoặc số điện thoại không đúng!');
+      }
+    }
+
+    function moveToNext(current, index) {
+      if (current.value.length === 1 && index < 6) {
+        document.querySelectorAll('.otp-inputs input')[index].focus();
+      }
+    }
+
+    function verifyOTP() {
+      const otp = Array.from(document.querySelectorAll('.otp-inputs input')).map(input => input.value).join('');
+      if (otp === '123456') {
+        showScreen('home-screen');
+        renderEnergyChart();
+      } else {
+        alert('Mã OTP không đúng!');
+      }
+    }
+
+    function renderEnergyChart() {
+      const ctx = document.getElementById('energyChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10'],
+          datasets: [{
+            label: 'Tiêu thụ điện (kWh)',
+            data: energyData,
+            backgroundColor: energyData.map(val => val > desiredKwh ? '#EF4444' : '#10B981'),
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#e5e7eb' } },
+            x: { grid: { display: false } }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    function showAccount() {
+      showScreen('account-screen');
+    }
+
+    function showManagement() {
+      showScreen('management-screen');
+      renderManagementChart();
+      updateNotifications();
+    }
+
+    function renderManagementChart() {
+      const ctx = document.getElementById('managementChart').getContext('2d');
+      if (managementChartInstance) managementChartInstance.destroy();
+      managementChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10'],
+          datasets: [
+            {
+              label: 'Tiêu thụ điện (kWh)',
+              data: energyData,
+              backgroundColor: energyData.map(val => val > desiredKwh ? '#EF4444' : '#10B981'),
+              borderRadius: 4,
+            },
+            {
+              label: 'Mức mong muốn',
+              data: Array(5).fill(desiredKwh),
+              type: 'line',
+              borderColor: '#FFD700',
+              borderWidth: 3,
+              fill: false,
+              pointBackgroundColor: '#FFD700',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+            }
+          ]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#e5e7eb' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function setDesiredKwh() {
+      const input = document.getElementById('desired-kwh').value;
+      if (input && !isNaN(input) && input > 0) {
+        desiredKwh = parseInt(input);
+        renderManagementChart();
+        updateNotifications();
+      } else {
+        alert('Vui lòng nhập mức kWh hợp lệ!');
+      }
+    }
+
+    function updateNotifications() {
+      const notifications = document.getElementById('usage-notifications');
+      notifications.innerHTML = '<h2 class="text-lg font-semibold text-blue-600 mb-2">Thông Báo Tiêu Thụ</h2>';
+      energyData.forEach((kwh, index) => {
+        if (kwh > desiredKwh) {
+          notifications.innerHTML += `<p class="text-red-500">Tháng ${6 + index}: Bạn dùng quá mức điện yêu cầu (${kwh - desiredKwh} kWh)</p>`;
+        }
+      });
+    }
+
+    function showBill() {
+      showScreen('bill-screen');
+    }
+
+    function showPayment() {
+      showScreen('payment-screen');
+    }
+
+    function selectPayment(method) {
+      alert(`Đã chọn phương thức thanh toán: ${method}`);
+    }
+
+    function processPayment() {
+      setTimeout(() => {
+        alert('Thanh toán thành công!');
+        showScreen('home-screen');
+      }, 5000);
+    }
+
+    function backToLogin() {
+      showScreen('login-screen');
+    }
+
+    function backToHome() {
+      showScreen('home-screen');
+      renderEnergyChart();
+    }
+
+    function backToBill() {
+      showScreen('bill-screen');
+    }
+
+    function exitApp() {
+      alert('Thoát ứng dụng');
+      showScreen('login-screen');
+    }
+  </script>
+</body>
+</html>
